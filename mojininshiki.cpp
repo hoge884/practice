@@ -49,6 +49,12 @@ vector<double> calcAppVal(vector<double>);
 
 // ここに各位が作成した関数を追加
 
+// 外接矩形の座標を計算する関数
+vector<int> coordinate(Mat binaryImage);
+
+// 垂直方向ラン数で各文字の特徴量を検出する関数
+vector<double> verticalRun(vector<Mat> binaryMats);
+
 
 // プロトタイプ宣言終了---------------------------------------------------------------------------------
 
@@ -117,7 +123,7 @@ int main(int argc, char* argv[]) {
 
 
     // ここに関数呼び出し処理---------------------------------------------------------
-
+    vRuns = verticalRun(binaryMats);
 
 
 
@@ -414,3 +420,62 @@ vector<double> calcAppVal(vector<double> vec) {
 }
 
 // 以下に各位が作成した関数の処理を追加
+
+/**
+ * @brief 文字画像の外接矩形を計算する関数
+ * @fn vector<int> coordinate(Mat binImage)
+ * @param (binaryImage) Mat型の変数(二値化処理後の文字画像)
+ * @return 0番目: up 1番目: down 2番目: left 3番目: right
+ */
+vector<int> coordinate(Mat binaryImage)
+{
+    // 閾値を格納する変数. 巨大な数値で初期化.
+    int up = 100000;
+    int down = -100000;
+    int left = 100000;
+    int right = -100000;
+
+    for (int y = 0; y < binaryImage.rows; y++) {
+        for (int x = 0; x < binaryImage.cols; x++) {
+            if (binaryImage.at<unsigned char>(y, x) == 0) {
+                if (up > y) up = y;
+                if (down < y) down = y;
+                if (left > x) left = x;
+                if (right < x) right = x;
+            }
+        }
+    }
+
+    vector<int> points(4);
+    points[0] = up;
+    points[1] = down;
+    points[2] = left;
+    points[3] = right;
+
+    return points;
+}
+
+/**
+ * @brief 垂直方向ラン数での各文字の特徴量を格納して返す関数
+ * @fn vector<double> verticalRun(vector<Mat> binaryMats)
+ * @param (binaryMats) Mat型の動的配列(二値化処理後の各文字画像)
+ * @return 0番目: testの特徴量 1番目: "あ"の特徴量 2番目: "い"の特徴量 3番目: "う"の特徴量 4番目: "え"の特徴量 5番目: "お"の特徴量
+ */
+vector<double> verticalRun(vector<Mat> binaryMats)
+{
+    // 各特徴量を格納する動的配列
+    vector<double> vRuns;
+
+    for (size_t i = 0; i < binaryMats.size(); i++) {
+        int runCnt = 0;
+        vector<int> bRect = coordinate(binaryMats[i]);
+        for (int x = bRect[2] + 1; x < bRect[3] - 1; x++) {
+            for (int y = bRect[0] + 1; y < bRect[1] - 1; y++) {
+                if (binaryMats[i].at<unsigned char>(y, x) != binaryMats[i].at<unsigned char>(y + 1, x)) runCnt++;
+            }
+        }
+        vRuns.push_back(runCnt);
+    }
+    
+    return vRuns;
+}
