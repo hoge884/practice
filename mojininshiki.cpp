@@ -45,20 +45,25 @@ vector<double> calcAve(vector<double>, vector<double>, vector<double>, vector<do
 char judgeChar(vector<double>);
 
 // 近似率を取得する関数
-vector<double> calcAppVal(vector<double>);
-
-// ここに各位が作成した関数を追加
+vector<int> calcAppVal(vector<double>);
 
 // 外接矩形の座標を計算する関数
 vector<int> coordinate(Mat binaryImage);
 
+// 濃度で各文字の特徴量を検出する関数
+vector<double> calccon(vector<Mat>);
+
+// 水平方向ラン数で各文字の特徴量を検出する関数
+vector<double> Count_hRuns(vector<Mat> binaryMats);
+
 // 垂直方向ラン数で各文字の特徴量を検出する関数
 vector<double> verticalRun(vector<Mat> binaryMats);
 
+//外接矩形比を返す関数
+vector<double> ratio(vector<Mat>);
+
 
 // プロトタイプ宣言終了---------------------------------------------------------------------------------
-
-
 
 
 // メイン
@@ -88,12 +93,11 @@ int main(int argc, char* argv[]) {
     vector<double> vRuns;                  // 垂直方向ラン数
     vector<double> ratios;                 // 外接矩形比
     vector<double> ave;                    // 正規化後の特徴量の平均を保持
-    vector<double> appValFeatures;         // 「あ」から「お」に対する近似率を保持
+    vector<int> appValFeatures;         // 「あ」から「お」に対する近似率を保持
 
     // サーバーに識別結果を返すための変数
     char result = 0;
 
-    
 
 // 処理の開始------------------------------------------------------------------------------------------------------------------------------------
 
@@ -110,7 +114,7 @@ int main(int argc, char* argv[]) {
     /*
         二値化した画像をvector<cv::Mat>型の動的配列に格納
 
-        binaryNats : 二値化した画像をtest, あ, い, う, え, お　の順番で保持
+        binaryMats : 二値化した画像をtest, あ, い, う, え, お　の順番で保持
     */
     binaryMats.push_back(test);
     binaryMats.push_back(charA);
@@ -120,13 +124,11 @@ int main(int argc, char* argv[]) {
     binaryMats.push_back(charO);
 
 
-
-
     // ここに関数呼び出し処理---------------------------------------------------------
+    concents = calccon(binaryMats);
+    hRuns = Count_hRuns(binaryMats);
     vRuns = verticalRun(binaryMats);
-
-
-
+    ratios = ratio(binaryMats);
     //--------------------------------------------------------------------------------
     
 
@@ -149,7 +151,6 @@ int main(int argc, char* argv[]) {
     */
     result = judgeChar(ave);
 
-
     /*
         ユーザーの入力画像が「あ」から「お」にどれくらい近いかの近似率を計算する
     */
@@ -164,29 +165,8 @@ int main(int argc, char* argv[]) {
         近似率を返す
     */
     for (int i = 0; i < appValFeatures.size(); i++) {
-        printf("%lf\n", appValFeatures[i]);
+        printf("%d\n", appValFeatures[i]);
     }
-
-
-
-
-
-
-// テスト用表示コード-----------------------------------------------------------------------------------------------
-    /*namedWindow("test");
-    namedWindow("か");
-    namedWindow("き");
-    namedWindow("く");
-    namedWindow("け");
-    namedWindow("こ");
-    imshow("test",test);
-    imshow("か", charA);
-    imshow("き", charI);
-    imshow("く", charU);
-    imshow("け", charE);
-    imshow("こ", charO);
-    waitKey(0);*/
-// ---------------------------------------------------------------------------------------------------------------------
 
     return 0;
 } // メインここまで
@@ -206,12 +186,11 @@ int main(int argc, char* argv[]) {
     そこで、二値化後に黒画素の数を数え、白画素よりも多い場合は背景色が黒になっていると判断し、白黒反転をする処理をしている。
     これは文字が画像の半分以上を占めないことを根拠としている。つまり、太い文字を画像領域一杯で撮影した画像などの場合は動作を保証できない。
 */
-void makeBinary(cv::Mat mat) {
+void makeBinary(Mat mat) {
     unsigned char current = 0;   // 注目画素の画素値を格納
     unsigned char max = 0;       // 画像内の画素値の最大値
     unsigned char min = 255;     // 画像内の画素値の最小値
     long  cnt = 0;               // 二値化後の画像内の黒画素の数
-
 
     // 最大値、最小値の計算
     for (int y = 0; y < mat.rows; y++) {
@@ -233,7 +212,6 @@ void makeBinary(cv::Mat mat) {
         }
     }
 
-
     // 二値化処理
     for (int y = 0; y < mat.rows; y++) {
         for (int x = 0; x < mat.cols; x++) {
@@ -247,7 +225,6 @@ void makeBinary(cv::Mat mat) {
             mat.at<unsigned char>(y,x) = current;
         }
     }
-
 
     /* 
         黒画素が画像の過半数の場合に白黒反転
@@ -279,6 +256,7 @@ void makeBinary(cv::Mat mat) {
     // ここまでの操作で画像配列matは二値画像に変換されている------------------------------------------------
 }
 
+
 /*
 
     vectorに格納されている4つの特徴量をそれぞれ正規化する
@@ -298,16 +276,12 @@ vector<double> normalize(vector<double> vec) {
     double current = 0.0;  // 正規化する際に一時的に値を代入
     //---------------------------------------------------------
 
-
-
     // 特徴量の平均を計算---------------------------------------
     for (int i = 0; i < vec.size(); i++) {
         ave += vec[i];
     }
     ave /= vec.size();
     //---------------------------------------------------------
-
-
 
     // 特徴量の分散を計算---------------------------------------
     for (int i = 0; i < vec.size(); i++) {
@@ -316,13 +290,9 @@ vector<double> normalize(vector<double> vec) {
     s /= vec.size();
     //---------------------------------------------------------
 
-
-
     // 標準偏差の取得-------------------------------------------
     stdev = sqrt(s);
     //---------------------------------------------------------
-
-
 
     // 特徴量の正規化-------------------------------------------
     for (int i = 0; i < vec.size(); i++) {
@@ -333,6 +303,7 @@ vector<double> normalize(vector<double> vec) {
     
     return vec;
 }
+
 
 /*
     正規化された4つの特徴量を平均してvector<double>型の配列に格納して返す関数
@@ -345,7 +316,7 @@ vector<double> normalize(vector<double> vec) {
 */
 vector<double> calcAve(vector<double> concents, vector<double> hRuns, vector<double> vRuns, vector<double> ratios) {
 
-    vector<double> result; // 特徴量を平均した結果を保持するvector<double>型の動的配列
+    vector<double> result(concents.size()); // 特徴量を平均した結果を保持するvector<double>型の動的配列
 
     /*
         ここで平均を計算
@@ -384,14 +355,15 @@ char judgeChar(vector<double> vec) {
         そのときの i を結果として返すことで、関数の役割は終了する
     */
     for (int i = 1; i < vec.size(); i++) {
-        if (1 - (vec[i] / testFeature) < min) {
-            min = vec[i] / testFeature < min;
+        if (abs(vec[i] / testFeature - 1) < min) {
+            min = abs(vec[i] / testFeature - 1);
             result = i;
         }
     }
-    return result;
 
+    return result;
 }
+
 
 /*
     ユーザーが入力した画像の特徴量が「あ」から「お」の特徴量にどれだけ近いかの割合を
@@ -399,34 +371,42 @@ char judgeChar(vector<double> vec) {
 
     近似率 : 「あ」から「お」の特徴量 / ユーザーの入力画像の特徴量
 */
-vector<double> calcAppVal(vector<double> vec) {
+vector<int> calcAppVal(vector<double> vec) {
 
     double testFeature = 0.0;          // ユーザーが入力した画像の特徴量
     /*
         ユーザーが入力した画像の特徴量を変数testFeatureに代入
     */
     testFeature = vec[0];
-
-    vector<double> result;             // 「あ」から「お」のそれぞれに対する近似率を格納するための動的配列
+    vector<int> result(vec.size()-1);             // 「あ」から「お」のそれぞれに対する近似率を格納するための動的配列
+    int percentage = 0;  // 各文字の近似率を示す変数(0 <= percentage <= 100 の自然数)
 
     /*
-        近似率を求めて、返答用のvector<double>型の配列に格納
+        近似率を求めて、返答用のvector<int>型の配列に格納
     */
     for (int i = 1; i < vec.size(); i++) {
-        result[i - 1] = vec[i] / testFeature;
+        double check_result = abs(vec[i] / testFeature - 1);
+        // 1.0を超えたら、あまりにも近似していない
+        if (check_result > 1.0) {
+            result[i - 1] = -1;
+        // 0 <= check_result <= 1 の範囲ならば近似率を格納する
+        } else {
+            check_result *= 100;  // パーセンテージを出力するため100倍する
+            percentage = static_cast<int>(check_result);  // 整数値に丸める
+            percentage = 100 - percentage;  // パーセンテージを出力するため100から引く
+            result[i - 1] = percentage;
+        }
     }
-
     return result;
 }
 
-// 以下に各位が作成した関数の処理を追加
 
 /**
- * @brief 文字画像の外接矩形を計算する関数
- * @fn vector<int> coordinate(Mat binImage)
- * @param (binaryImage) Mat型の変数(二値化処理後の文字画像)
- * @return 0番目: up 1番目: down 2番目: left 3番目: right
- */
+  * @brief 文字画像の外接矩形を計算する関数
+  * @fn vector<int> coordinate(Mat binImage)
+  * @param (binaryImage) Mat型の変数(二値化処理後の文字画像)
+  * @return 0番目: up 1番目: down 2番目: left 3番目: right
+*/
 vector<int> coordinate(Mat binaryImage)
 {
     // 閾値を格納する変数. 巨大な数値で初期化.
@@ -455,12 +435,93 @@ vector<int> coordinate(Mat binaryImage)
     return points;
 }
 
+
+// 濃度を計算する関数
+vector<double> calccon(vector<Mat> mat){
+   
+    vector<int> point;
+    vector<double> result;
+    
+    unsigned char s;
+    for(size_t i = 0; i < mat.size(); i++){
+        int con=0;
+        point = coordinate(mat[i]);
+        for(int y=point[0]+1; y < point[1]; y++){
+            for(int x=point[2]+1; x < point[3]; x++){
+                s = mat[i].at < unsigned char>(y, x);
+                if( s == 0){
+                    con++;
+                }
+	            mat[i].at < unsigned char>(y, x) = s;
+	        }
+        }
+        result.push_back(con);
+    }
+    return result;
+}
+
+
+//水平方向乱数をカウントする関数　
+//引数 binaryMats:二値化した画像をtest, あ, い, う, え, お　の順番で保持　
+//戻り値 vector<double>：水平方向乱数をtest, あ, い, う, え, お　の順番で保持
+vector<double> Count_hRuns(vector<Mat> binaryMats)
+{   //外接矩形の座標変数
+    int up = 100000;
+    int down = -100000;
+    int left = 100000;
+    int right = -100000;
+
+    //水平方向乱数を格納する動的配列
+    vector<double> hRuns;
+
+    //外接矩形の左右上下の座標を出す　→　水平方向ラン数を出す　→　水平方向ラン数を格納する
+    //上記の処理の流れをtest, あ, い, う, え, お　の順番で実行する
+    for(int i=0;i<binaryMats.size();i++){  
+        //  外接矩形の左右上下の位置を出す
+        for (int y = 0; y < binaryMats[i].rows; y++) {
+            for (int x = 0; x < binaryMats[i].cols; x++) {
+                if (binaryMats[i].at<unsigned char>(y, x) == 0) {
+                    if (up > y) up = y;
+                    if (down < y) down = y;
+                    if (left > x) left = x;
+                    if (right < x) right = x;
+                }
+            }
+        }
+
+        //水平方向ラン数を計算
+        int hRunsCount=0;
+        unsigned char u;  
+        unsigned char uNext;
+        for(int Y=up+1 ; Y < down-1 ; Y++){
+            for(int X= left+1 ; X <  right-1 ; X++){
+            u= binaryMats[i].at < unsigned char>(Y, X);
+            uNext = binaryMats[i].at < unsigned char>(Y, X+1);
+            if(  u!=uNext ){  //濃度に差があったら
+                hRunsCount++;
+                }   
+            }
+        }
+        //水平方向ラン数を格納する
+        hRuns.push_back(hRunsCount);
+
+        //位置のリセット
+        up = 100000;
+        down = -100000;
+        left = 100000;
+        right = -100000;
+
+    } 
+    return hRuns;
+}
+
+
 /**
- * @brief 垂直方向ラン数での各文字の特徴量を格納して返す関数
- * @fn vector<double> verticalRun(vector<Mat> binaryMats)
- * @param (binaryMats) Mat型の動的配列(二値化処理後の各文字画像)
- * @return 0番目: testの特徴量 1番目: "あ"の特徴量 2番目: "い"の特徴量 3番目: "う"の特徴量 4番目: "え"の特徴量 5番目: "お"の特徴量
- */
+  * @brief 垂直方向ラン数での各文字の特徴量を格納して返す関数
+  * @fn vector<double> verticalRun(vector<Mat> binaryMats)
+  * @param (binaryMats) Mat型の動的配列(二値化処理後の各文字画像)
+  * @return 0番目: testの特徴量 1番目: "あ"の特徴量 2番目: "い"の特徴量 3番目: "う"の特徴量 4番目: "え"の特徴量 5番目: "お"の特徴量
+*/
 vector<double> verticalRun(vector<Mat> binaryMats)
 {
     // 各特徴量を格納する動的配列
@@ -478,4 +539,29 @@ vector<double> verticalRun(vector<Mat> binaryMats)
     }
     
     return vRuns;
+}
+
+
+/*
+    外接矩形比を返す関数
+    vector<double> :  特徴量の値
+*/
+
+vector<double> ratio(vector<Mat> binaryMats){
+    //外接矩形比を格納する配列
+    vector<double> points(binaryMats.size());
+    
+    for(int i = 0; i < binaryMats.size(); i++){
+        vector<int> point;
+        point = coordinate(binaryMats[i]);//文字の座標位置受取 0番目: up 1番目: down 2番目: left 3番目: right　取得
+
+        //外接矩形比を小数点四桁目を四捨五入し配列に代入
+        double ratio;//外接矩形比を格納する変数
+        ratio = ratio+0.5;//
+        ratio = static_cast<double>(point[3] - point[2]) / static_cast<double>(point[1] - point[0])*1000;//文字の座標位置 0番目: up 1番目: down 2番目: left 3番目: right
+        ratio = static_cast<int>(ratio);
+
+        points[i] = static_cast<double>(ratio/1000);
+    }
+    return points;
 }
