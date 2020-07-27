@@ -49,6 +49,8 @@ vector<double> calcAppVal(vector<double>);
 
 // ここに各位が作成した関数を追加
 
+//水平方向ラン数をカウントする関数
+vector<double> Count_hRuns(vector<Mat> binaryMats);
 
 // プロトタイプ宣言終了---------------------------------------------------------------------------------
 
@@ -118,6 +120,9 @@ int main(int argc, char* argv[]) {
 
     // ここに関数呼び出し処理---------------------------------------------------------
 
+     //Count_hRuns()は水平方向ラン数をカウントする関数
+     //水平方向ラン数をhRunsに格納
+     hRuns=Count_hRuns(binaryMats); 
 
 
 
@@ -414,3 +419,58 @@ vector<double> calcAppVal(vector<double> vec) {
 }
 
 // 以下に各位が作成した関数の処理を追加
+
+//水平方向乱数をカウントする関数　
+//引数 binaryMats:二値化した画像をtest, あ, い, う, え, お　の順番で保持　
+//戻り値 vector<double>：水平方向乱数をtest, あ, い, う, え, お　の順番で保持
+
+vector<double> Count_hRuns(vector<Mat> binaryMats)
+{   //外接矩形の座標変数
+    int up = 100000;
+    int down = -100000;
+    int left = 100000;
+    int right = -100000;
+
+    //水平方向乱数を格納する動的配列
+    vector<double> hRuns;
+
+//外接矩形の左右上下の座標を出す　→　水平方向ラン数を出す　→　水平方向ラン数を格納する
+//上記の処理の流れをtest, あ, い, う, え, お　の順番で実行する
+ for(int i=0;i<=5;i++){  
+     //  外接矩形の左右上下の位置を出す
+    for (int y = 0; y < binaryMats[i].rows; y++) {
+        for (int x = 0; x < binaryMats[i].cols; x++) {
+            if (binaryMats[i].at<unsigned char>(y, x) == 0) {
+                if (up > y) up = y;
+                if (down < y) down = y;
+                if (left > x) left = x;
+                if (right < x) right = x;
+            }
+        }
+    }
+
+    //水平方向ラン数を計算
+   int hRunsCount=0;
+   unsigned char u;  
+   unsigned char uNext;
+   for(int Y=up+1 ; Y < down-1 ; Y++){
+    for(int X= left+1 ; X <  right-1 ; X++){
+      u= binaryMats[i].at < unsigned char>(Y, X);
+      uNext = binaryMats[i].at < unsigned char>(Y, X+1);
+      if(  u!=uNext ){  //濃度に差があったら
+         hRunsCount++;
+        }   
+    }
+  }
+  //水平方向ラン数を格納する
+   hRuns.push_back(hRunsCount);
+
+  //位置のリセット
+   up = 100000;
+   down = -100000;
+   left = 100000;
+   right = -100000;
+
+ } 
+  return hRuns;
+}
