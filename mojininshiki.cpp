@@ -436,7 +436,7 @@ vector<double> Count_hRuns(vector<Mat> binaryMats)
 
 //外接矩形の左右上下の座標を出す　→　水平方向ラン数を出す　→　水平方向ラン数を格納する
 //上記の処理の流れをtest, あ, い, う, え, お　の順番で実行する
- for(int i=0;i<=5;i++){  
+ for(int i=0;i<=binaryMats.size();i++){  
      //  外接矩形の左右上下の位置を出す
     for (int y = 0; y < binaryMats[i].rows; y++) {
         for (int x = 0; x < binaryMats[i].cols; x++) {
