@@ -49,6 +49,8 @@ vector<double> calcAppVal(vector<double>);
 
 // ここに各位が作成した関数を追加
 
+//外接矩形比を返す関数
+vector<double> ratio(vector<Mat>);
 
 // プロトタイプ宣言終了---------------------------------------------------------------------------------
 
@@ -118,7 +120,7 @@ int main(int argc, char* argv[]) {
 
     // ここに関数呼び出し処理---------------------------------------------------------
 
-
+    ratios = ratio(binaryMats);
 
 
     //--------------------------------------------------------------------------------
@@ -414,3 +416,27 @@ vector<double> calcAppVal(vector<double> vec) {
 }
 
 // 以下に各位が作成した関数の処理を追加
+
+/*
+    外接矩形比を返す関数
+    vector<double> :  特徴量の値
+*/
+
+vector<double> ratio(vector<Mat> binaryMats){
+    //外接矩形比を格納する配列
+    vector<double> points(binaryMats.size());
+    
+    for(int i = 0; i < binaryMats.size(); i++){
+        vector<int> point;
+        point = coordinate(binaryMats[i]);//文字の座標位置受取 0番目: up 1番目: down 2番目: left 3番目: right　取得
+
+        //外接矩形比を小数点四桁目を四捨五入し配列に代入
+        double ratio;//外接矩形比を格納する変数
+        ratio = ratio+0.5;//
+        ratio = static_cast<double>(point[3] - point[2]) / static_cast<double>(point[1] - point[0])*1000;//文字の座標位置 0番目: up 1番目: down 2番目: left 3番目: right
+        ratio = static_cast<int>(ratio);
+
+        points[i] = static_cast<double>(ratio/1000);
+    }
+    return points;
+}
