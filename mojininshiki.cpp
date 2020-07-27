@@ -48,7 +48,8 @@ char judgeChar(vector<double>);
 vector<double> calcAppVal(vector<double>);
 
 // ここに各位が作成した関数を追加
-
+vector<double> calccon(vector<cv::Mat>);
+std::vector<int> coordinate(cv::Mat);
 
 // プロトタイプ宣言終了---------------------------------------------------------------------------------
 
@@ -117,7 +118,8 @@ int main(int argc, char* argv[]) {
 
 
     // ここに関数呼び出し処理---------------------------------------------------------
-
+    
+    concents = calccon(binaryMats);
 
 
 
@@ -128,9 +130,9 @@ int main(int argc, char* argv[]) {
         vectorに格納されている特徴量を正規化
     */
     concents = normalize(concents);
-    hRuns = normalize(hRuns);
+   /* hRuns = normalize(hRuns);
     vRuns = normalize(vRuns);
-    ratios = normalize(ratios);
+    ratios = normalize(ratios);*/
 
     /*
         正規化された特徴量の平均を求める
@@ -414,3 +416,75 @@ vector<double> calcAppVal(vector<double> vec) {
 }
 
 // 以下に各位が作成した関数の処理を追加
+
+vector<double> calccon(vector<cv::Mat> mat){
+   
+    std::vector<int> point;
+    vector<double> result;
+    //point = coordinate();
+
+    for (int i = 0; i < point.size(); i++) {
+        std::cout << point[i] << " ";
+    }
+    std::cout << "\n";
+    
+    unsigned char s;
+    for(size_t i = 0; i < mat.size(); i++){
+        int con=0;
+        point = coordinate(mat[i]);
+        for(int y=point[0]+1; y < point[1]; y++){
+            for(int x=point[2]+1; x < point[3]; x++){
+                s = mat[i].at < unsigned char>(y, x);
+                if( s == 0){
+                    con++;
+                }
+	            mat[i].at < unsigned char>(y, x) = s;
+	        }
+        }
+        result.push_back(con);
+        return result;
+    }
+}
+
+  /*  
+    unsigned char s;
+    for(int y=point[0]+1; y < point[1]; y++){
+        for(int x=point[2]+1; x < point[3]; x++){
+            s = mat.at < unsigned char>(y, x);
+            if( s == 0){
+                con++;
+            }
+	         mat.at < unsigned char>(y, x) = s;
+	    }
+    }
+    for (int y = point[0]; y < point[1];y++){
+        std::cout << (int)mat.at<unsigned char>(y,75) << std::endl;
+    }
+    return con;
+}
+*/
+std::vector<int> coordinate(cv::Mat binImage){
+    int up = 100000;
+    int down = -100000;
+    int left = 100000;
+    int right = -100000;
+    std::vector<int> point;
+    unsigned char s;
+    for(int y=0; y < binImage.rows; y++){
+        for(int x=0; x < binImage.cols; x++){
+            s = binImage.at < unsigned char>(y, x);
+            if( s == 0/*黒*/){
+                if(up > y) up = y;
+                if(down < y) down = y;
+                if(left > x) left = x;
+                if(right < x) right = x;
+            }
+        }
+    }
+    point.push_back(up);
+    point.push_back(down);
+    point.push_back(left);
+    point.push_back(right);
+
+    return point;
+}
