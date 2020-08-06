@@ -48,16 +48,16 @@ char judgeChar(vector<double>);
 vector<int> calcAppVal(vector<double>);
 
 // 外接矩形の座標を計算する関数
-vector<int> coordinate(Mat binaryImage);
+vector<int> coordinate(Mat);
 
 // 濃度で各文字の特徴量を検出する関数
 vector<double> calccon(vector<Mat>);
 
 // 水平方向ラン数で各文字の特徴量を検出する関数
-vector<double> Count_hRuns(vector<Mat> binaryMats);
+vector<double> Count_hRuns(vector<Mat>);
 
 // 垂直方向ラン数で各文字の特徴量を検出する関数
-vector<double> verticalRun(vector<Mat> binaryMats);
+vector<double> verticalRun(vector<Mat>);
 
 //外接矩形比を返す関数
 vector<double> ratio(vector<Mat>);
@@ -73,11 +73,11 @@ int main(int argc, char* argv[]) {
         このとき、ユーザーから入力された画像が一番目、以降はあ段からお段までの順番で読み込む必要がある。
     */
     Mat test  = imread(argv[1],0);    // ユーザーから入力された画像
-    Mat charA = imread(argv[2], 0);  // 「あ」の画像
-    Mat charI = imread(argv[3], 0);  // 「い」の画像
-    Mat charU = imread(argv[4], 0);  // 「う」の画像
-    Mat charE = imread(argv[5], 0);  // 「え」の画像
-    Mat charO = imread(argv[6], 0);  // 「お」の画像
+    Mat charA = imread(argv[2], 0);   // 「あ」の画像
+    Mat charI = imread(argv[3], 0);   // 「い」の画像
+    Mat charU = imread(argv[4], 0);   // 「う」の画像
+    Mat charE = imread(argv[5], 0);   // 「え」の画像
+    Mat charO = imread(argv[6], 0);   // 「お」の画像
 
     /*
         特徴量を格納する可変長配列
@@ -93,7 +93,7 @@ int main(int argc, char* argv[]) {
     vector<double> vRuns;                  // 垂直方向ラン数
     vector<double> ratios;                 // 外接矩形比
     vector<double> ave;                    // 正規化後の特徴量の平均を保持
-    vector<int> appValFeatures;         // 「あ」から「お」に対する近似率を保持
+    vector<int> appValFeatures;            // 「あ」から「お」に対する近似率を保持
 
     // サーバーに識別結果を返すための変数
     char result = 0;
@@ -125,6 +125,7 @@ int main(int argc, char* argv[]) {
 
 
     // ここに関数呼び出し処理---------------------------------------------------------
+	// 要修正
     concents = calccon(binaryMats);
     hRuns = Count_hRuns(binaryMats);
     vRuns = verticalRun(binaryMats);
@@ -415,6 +416,13 @@ vector<int> coordinate(Mat binaryImage)
     int left = 100000;
     int right = -100000;
 
+    /* 
+       外接矩形の上下左右の座標を求める.
+       up : 上側の座標
+       down : 下側の座標
+       left : 左側の座標
+       right : 右側の座標
+    */
     for (int y = 0; y < binaryImage.rows; y++) {
         for (int x = 0; x < binaryImage.cols; x++) {
             if (binaryImage.at<unsigned char>(y, x) == 0) {
@@ -426,6 +434,7 @@ vector<int> coordinate(Mat binaryImage)
         }
     }
 
+    // 外接矩形の座標を格納するための動的配列
     vector<int> points(4);
     points[0] = up;
     points[1] = down;
@@ -438,24 +447,26 @@ vector<int> coordinate(Mat binaryImage)
 
 // 濃度を計算する関数
 vector<double> calccon(vector<Mat> mat){
-   
-    vector<int> point;
-    vector<double> result;
+    /* 
+       外接矩形の座標を格納する動的配列と濃度を計算した結果を格納する動的配列を宣言
+    */
+    vector<int> point;       // 外接矩形の座標4つ
+    vector<double> result;   // 濃度
     
-    unsigned char s;
+    unsigned char s;         // 一時保存用変数
     for(size_t i = 0; i < mat.size(); i++){
-        int con=0;
-        point = coordinate(mat[i]);
+        int con=0;  // 濃度の初期化
+        point = coordinate(mat[i]);    // 画像一つずつに対して濃度を求める
         for(int y=point[0]+1; y < point[1]; y++){
             for(int x=point[2]+1; x < point[3]; x++){
                 s = mat[i].at < unsigned char>(y, x);
-                if( s == 0){
+                if( s == 0){  // 黒画素の個数をカウント
                     con++;
                 }
 	            mat[i].at < unsigned char>(y, x) = s;
 	        }
         }
-        result.push_back(con);
+        result.push_back(con);         // 結果を動的配列に格納
     }
     return result;
 }
@@ -528,14 +539,14 @@ vector<double> verticalRun(vector<Mat> binaryMats)
     vector<double> vRuns;
 
     for (size_t i = 0; i < binaryMats.size(); i++) {
-        int runCnt = 0;
+        int runCnt = 0;   // 垂直方向ラン数
         vector<int> bRect = coordinate(binaryMats[i]);
         for (int x = bRect[2] + 1; x < bRect[3] - 1; x++) {
             for (int y = bRect[0] + 1; y < bRect[1] - 1; y++) {
                 if (binaryMats[i].at<unsigned char>(y, x) != binaryMats[i].at<unsigned char>(y + 1, x)) runCnt++;
             }
         }
-        vRuns.push_back(runCnt);
+        vRuns.push_back(runCnt);      // 結果を動的配列に格納
     }
     
     return vRuns;
