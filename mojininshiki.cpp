@@ -332,35 +332,25 @@ vector<double> calcAve(vector<double> concents, vector<double> hRuns, vector<dou
 /*
     ユーザーが入力した画像が「あ」から「お」の、どの文字と近い特徴を持っているかを判断する関数
 
-    vector<double> : 正規化された特徴量の平均
+    vec  : 近似率
+    vec2 : ユークリッド距離が格納された動的配列
 */
-char judgeChar(vector<double> vec) {
-
-    double testFeature = 0.0;       // ユーザーが入力した画像の特徴量
-    /*
-        ユーザーが入力した画像の特徴量を変数testFeatureに代入
-    */
-    testFeature = vec[0];
-
-    double min = 100000.0;          // もっとも1に近いものを算出するための変数
-    char result = 0;                // 判別結果を一文字の数字として保持するための変数
-
-    /*
-        ここでもっとも近似率の高いものを判定する
-        まったく同じ特徴量だった場合、計算結果は1となることは自明である
-        この性質を使って判定をする
-
-        識別結果の最大が1であるから、1にもっとも近い近似率の文字が取得したい結果である
-        つまり、1 - 「あ」から「お」のそれぞれの近似率　を計算し、これが最も小さいものがもっとも近いひらがなであるということである
-
-        そのときの i を結果として返すことで、関数の役割は終了する
-    */
-    for (int i = 1; i < vec.size(); i++) {
-        if (abs(vec[i] / testFeature - 1) < min) {
-            min = abs(vec[i] / testFeature - 1);
-            result = i;
-        }
-    }
+char judgeChar(vector<double> vec, vector<double> vec2) {
+	int par = 0;  // カレントの近似率
+	double distance = 0.0; // カレントのユークリッド距離
+	char result = 0;       // 識別結果
+	for (int i = 0; i < vec.size(); i++) {
+		if (par < vec[i]) {
+			par = vec[i];        // 近似率の更新
+			distance = vec2.[i]; // ユークリッド距離の更新
+			result = i + 1;
+		}else if (par == vec[i]) {
+			if (distance > vec2[i]) {
+				result = i + 1;
+				distance = vec2.[i]; // ユークリッド距離の更新
+			}
+		}
+	}
 
     return result;
 }
@@ -372,31 +362,17 @@ char judgeChar(vector<double> vec) {
 
     近似率 : 「あ」から「お」の特徴量 / ユーザーの入力画像の特徴量
 */
-vector<int> calcAppVal(vector<double> vec) {
-
-    double testFeature = 0.0;          // ユーザーが入力した画像の特徴量
-    /*
-        ユーザーが入力した画像の特徴量を変数testFeatureに代入
-    */
-    testFeature = vec[0];
+vector<int> calcAppVal(vector<double> concents, vector<double> hRuns, vector<double> vRuns, vector<double> ratios, vector<double> weights) {
     vector<int> result(vec.size()-1);             // 「あ」から「お」のそれぞれに対する近似率を格納するための動的配列
-    int percentage = 0;  // 各文字の近似率を示す変数(0 <= percentage <= 100 の自然数)
+    double percentage = 0;  // 各文字の近似率を示す変数(0 <= percentage <= 100 の自然数)
 
     /*
         近似率を求めて、返答用のvector<int>型の配列に格納
     */
     for (int i = 1; i < vec.size(); i++) {
-        double check_result = abs(vec[i] / testFeature - 1);
-        // 1.0を超えたら、あまりにも近似していない
-        if (check_result > 1.0) {
-            result[i - 1] = -1;
-        // 0 <= check_result <= 1 の範囲ならば近似率を格納する
-        } else {
-            check_result *= 100;  // パーセンテージを出力するため100倍する
-            percentage = static_cast<int>(check_result);  // 整数値に丸める
-            percentage = 100 - percentage;  // パーセンテージを出力するため100から引く
-            result[i - 1] = percentage;
-        }
+        percentage = concents[i]/concents[0] * weights[i-1] + hRuns[i]/hRuns[0] * weight[i-1] + vRuns[i]/vRuns[0] * weight[i-1] + ratios[i]/ratios[0] * weight[i-1];
+	percentage *= 100;
+	result.push_back((int)percentage);
     }
     return result;
 }
